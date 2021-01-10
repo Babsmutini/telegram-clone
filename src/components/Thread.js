@@ -2,10 +2,38 @@ import React, { useState } from 'react'
 import {MoreHoriz, SendRounded, MicNoneOutlined, TimerOutlined} from '@material-ui/icons'
 import './Thread.css'
 import {Avatar, IconButton} from '@material-ui/core'
+import db from '../firebase'
+import firebase from 'firebase'
+import {useSelector} from 'react-redux'
+import { selectThreadId, selectThreadName} from '../features/threadSlice';
+
 const Thread = () => {
     const [input, setInput] = useState('');
+    const [messages, setMessages] = useState([]);
+    const threadName = useSelector(selectThreadName);
+    const threadId = useSelector(selectThreadId);
+    const user = useSelector(selectUser);
+
+    useEffect(() => {
+        if(threadId) {
+            db.collection('threads').collection('messages').orderBy('timestamp','desc')
+            .onSnapshot((snapshot) => setMessages(snapshot.docs.map((doc) => {
+                id: doc.id,
+                data: doc.d
+            })))
+        }
+    }, [input])
+
     const sendMessage = (e) => {
         e.preventDefault();
+        db.collection('threads').doc(threadId).collection('messages').add({
+            timestamp: firebase.firestore.FieldValue.serverTimestamp,
+            message: input,
+            uid: user.uid,
+            photo: user.photo,
+            email: user.email,
+            displayName: user.displayName,
+    });
         //firebase
         setInput('')
     }
@@ -27,6 +55,7 @@ const Thread = () => {
 
             </div>
             <div className="thread__input">
+                <form>
                 <input placeholder="Write a message..." type="text" value={input} onChange={(e) => setInput(e.target.value)}></input>
                 <IconButton onClick={sendMessage}>
                     <TimerOutlined/>
@@ -37,6 +66,7 @@ const Thread = () => {
                 <IconButton onClick={sendMessage}>
                     <MicNoneOutlined/>
                 </IconButton>
+                </form>
             </div>
         </div>
     )
