@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {MoreHoriz, SendRounded, MicNoneOutlined, TimerOutlined} from '@material-ui/icons'
 import './Thread.css'
 import {Avatar, IconButton} from '@material-ui/core'
@@ -6,6 +6,8 @@ import db from '../firebase'
 import firebase from 'firebase'
 import {useSelector} from 'react-redux'
 import { selectThreadId, selectThreadName} from '../features/threadSlice';
+import { selectUser } from '../features/userSlice'
+import Message from './Message'
 
 const Thread = () => {
     const [input, setInput] = useState('');
@@ -16,18 +18,27 @@ const Thread = () => {
 
     useEffect(() => {
         if(threadId) {
-            db.collection('threads').collection('messages').orderBy('timestamp','desc')
-            .onSnapshot((snapshot) => setMessages(snapshot.docs.map((doc) => {
+            db.collection('threads')
+                .doc(threadId)
+                .collection('messages')
+                .orderBy('timestamp','desc')
+                .onSnapshot((snapshot) => 
+                setMessages(
+                    snapshot.docs.map((doc) => ({
                 id: doc.id,
-                data: doc.d
+                data: doc.data()
             })))
+                );
         }
-    }, [input])
+    }, [threadId]);
 
     const sendMessage = (e) => {
         e.preventDefault();
-        db.collection('threads').doc(threadId).collection('messages').add({
-            timestamp: firebase.firestore.FieldValue.serverTimestamp,
+        db.collection('threads')
+        .doc(threadId)
+        .collection('messages')
+        .add({
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             message: input,
             uid: user.uid,
             photo: user.photo,
@@ -52,7 +63,9 @@ const Thread = () => {
             </IconButton>
             </div>   
             <div className="thread__messages">
-
+                {messages.map(({id, data}) => {
+                    <Message key={id} data={data} />
+                })}
             </div>
             <div className="thread__input">
                 <form>
